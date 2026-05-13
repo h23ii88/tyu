@@ -1,0 +1,130 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loan Eligibility Checker | Premium Finance Tools</title>
+    <meta name="description" content="Check your loan eligibility across multiple banking products instantly with our advanced calculator.">
+    <link rel="stylesheet" href="{% static 'calculator/css/style.css' %}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Loan Eligibility Checker</h1>
+            <p class="subtitle">Enter your financial details to check eligibility for our premium loan products.</p>
+        </header>
+
+        <div class="grid">
+            <div class="card">
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="income">Monthly Income ($)</label>
+                        <input type="number" name="income" id="income" placeholder="e.g. 5000" value="{{ form_data.income|default:'' }}" required min="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="loan_amount">Requested Loan Amount ($)</label>
+                        <input type="number" name="loan_amount" id="loan_amount" placeholder="e.g. 50000" value="{{ form_data.loan_amount|default:'' }}" required min="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="tenure">Tenure (Years)</label>
+                        <input type="number" name="tenure" id="tenure" placeholder="e.g. 10" value="{{ form_data.tenure|default:'' }}" required min="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="existing_emi">Existing Monthly EMI Outgoings ($)</label>
+                        <input type="number" name="existing_emi" id="existing_emi" placeholder="e.g. 500" value="{{ form_data.existing_emi|default:'' }}" required min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="cibil_score">CIBIL Score</label>
+                        <input type="number" name="cibil_score" id="cibil_score" placeholder="e.g. 750" value="{{ form_data.cibil_score|default:'750' }}" required min="300" max="900">
+                    </div>
+                    <div class="form-group">
+                        <label for="loan_type_requested">Loan Type</label>
+                        <select name="loan_type_requested" id="loan_type_requested">
+                            <option value="ALL" {% if form_data.loan_type_requested == 'ALL' %}selected{% endif %}>All Loan Types</option>
+                            {% for key, value in loan_types %}
+                            <option value="{{ key }}" {% if form_data.loan_type_requested == key %}selected{% endif %}>{{ value }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" id="submit-btn">Check Eligibility</button>
+                </form>
+            </div>
+
+            <div class="card" id="results-card">
+                {% if profile_recommendations %}
+                    <div class="recommendations-box" style="background: rgba(99, 102, 241, 0.1); border-left: 4px solid var(--primary); padding: 1rem; margin-bottom: 2rem; border-radius: 0 0.5rem 0.5rem 0;">
+                        <h3 style="margin-bottom: 0.5rem; color: #818cf8; font-size: 1.1rem;">💡 Profile Recommendations</h3>
+                        <ul style="list-style-type: none; padding-left: 0; color: var(--text-primary);">
+                            {% for rec in profile_recommendations %}
+                                <li style="margin-bottom: 0.5rem; font-size: 0.9rem;">✓ {{ rec }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+                
+                {% if results %}
+                    <div class="results-header">
+                        <h2>Available Products</h2>
+                        <p class="subtitle">Based on your shared profile</p>
+                    </div>
+                    {% for res in results %}
+                        <div class="loan-product {% if res.is_best %}best-option{% endif %}">
+                            <div class="product-info">
+                                <span class="product-name">
+                                    {{ res.product.name }}
+                                    {% if res.is_best %}
+                                        <span class="best-badge" style="background: #fbbf24; color: #78350f; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin-left: 0.5rem; font-weight: bold;">⭐ Best Option</span>
+                                    {% endif %}
+                                </span>
+                                <span class="status-badge {% if res.eligible %}status-eligible{% else %}status-ineligible{% endif %}">
+                                    {% if res.eligible %}Eligible{% else %}Not Eligible{% endif %}
+                                </span>
+                            </div>
+                            <div class="product-stats">
+                                <span>Rate: {{ res.effective_rate }}%</span>
+                                <span>Est. EMI: ${{ res.emi }}</span>
+                                <span>New DTI: {{ res.dti }}%</span>
+                                <span>Max Tenure: {{ res.product.max_tenure_years }}y</span>
+                            </div>
+                            {% if not res.eligible %}
+                                <ul class="reason-list">
+                                    {% for reason in res.reasons %}
+                                        <li>{{ reason }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <p>Fill out the form to see your eligibility results.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <footer style="text-align: center; margin-top: 3rem; color: var(--text-secondary); font-size: 0.8rem;">
+            <p>&copy; 2026 Premium Finance. All rights reserved.</p>
+            <p><a href="/admin" style="color: var(--primary); text-decoration: none;">Admin Login</a></p>
+        </footer>
+    </div>
+
+    <script>
+        // Subtle micro-animation for results entry
+        document.addEventListener('DOMContentLoaded', () => {
+            const products = document.querySelectorAll('.loan-product');
+            products.forEach((p, index) => {
+                p.style.opacity = '0';
+                p.style.transform = 'translateY(10px)';
+                setTimeout(() => {
+                    p.style.transition = 'all 0.4s ease';
+                    p.style.opacity = '1';
+                    p.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        });
+    </script>
+</body>
+</html>
